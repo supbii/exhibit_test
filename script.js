@@ -1,4 +1,183 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // 커서 팡 이미지 위치 설정
+    const pangContainer = document.getElementById('pangcontainer');
+    const pang = document.getElementById('pang');
+
+    document.addEventListener('click', (event) => {
+        const offsetX = 120;
+        const offsetY = 670;
+    
+        pangContainer.style.left = (event.pageX - offsetX) + 'px';
+        pangContainer.style.top = (event.pageY - offsetY) + 'px';
+        pangContainer.style.display = 'block';
+
+        setTimeout(() => {
+            pangContainer.style.display = 'none';
+        }, 500);
+    });
+
+        // 상단 버튼
+        let savedStates = [];
+
+        const animals = ['vc', 'fl', 'uku', 'djb', 'dr', 'vn', 'trb', 'gtr', 'pf', 'cb', 'trp', 'vo'];
+
+        animals.forEach(animal => {
+            document.getElementById(`${animal}standby`).addEventListener('click', () => {
+                toggleAnimalState(animal);
+                updateSaveButtonState(); // 상태 업데이트 호출
+            });
+        });
+    
+        function toggleAnimalState(animalId) {
+            const animalMusic = document.getElementById(`${animalId}Music`);
+            animalMusic.muted = !animalMusic.muted;
+            updateAnimalImages(animalId, animalMusic.muted);
+            updateSaveButtonState();
+        }
+
+        function loadCombination(index) {
+            const state = savedStates[index];
+        
+            Object.keys(state).forEach(animal => {
+                const isMuted = !state[animal];
+                document.getElementById(`${animal}Music`).muted = isMuted;
+                const standbyImage = document.getElementById(`${animal}standby`);
+                const play1Image = document.getElementById(`${animal}play1`);
+                const play2Image = document.getElementById(`${animal}play2`);
+        
+                if (!isMuted) {
+                    standbyImage.style.display = 'none';
+                    play1Image.style.display = 'block';
+                    play2Image.style.display = 'none';
+                } else {
+                    standbyImage.style.display = 'block';
+                    play1Image.style.display = 'none';
+                    play2Image.style.display = 'none';
+                }
+            });
+            updateSaveButtonState(); // 상태 업데이트 호출 추가
+        }
+
+        // '저장하기' 버튼 상태 업데이트 함수
+        function updateSaveButtonState() {
+            const saveButton = document.getElementById('saveButton');
+            if (isAnyAnimalActive()) {
+                saveButton.disabled = false;
+                saveButton.style.opacity = 1;
+            } else {
+                saveButton.disabled = true;
+                saveButton.style.opacity = 0.5;
+            }
+        }
+
+        function isAnyAnimalActive() {
+            return animals.some(animal => !document.getElementById(`${animal}Music`).muted);
+        }
+        
+        // 동물들의 현재 상태 저장
+        function saveCurrentState() {
+            const currentState = {
+                vc: !document.getElementById('vcMusic').muted,
+                fl: !document.getElementById('flMusic').muted,
+                uku: !document.getElementById('ukuMusic').muted,
+                djb: !document.getElementById('djbMusic').muted,
+                dr: !document.getElementById('drMusic').muted,
+                vn: !document.getElementById('vnMusic').muted,
+                trb: !document.getElementById('trbMusic').muted,
+                gtr: !document.getElementById('gtrMusic').muted,
+                pf: !document.getElementById('pfMusic').muted,
+                cb: !document.getElementById('cbMusic').muted,
+                trp: !document.getElementById('trpMusic').muted,
+                vo: !document.getElementById('voMusic').muted,
+            };
+
+            // 동일한 조합이 이미 저장되었는지 확인
+            const isDuplicate = savedStates.some(state => 
+                Object.keys(state).every(animal => 
+                    state[animal] === currentState[animal]
+                )
+            );
+
+            if (!isDuplicate) {
+                if (savedStates.length >= 5) {
+                    // 5개 이상이면 가장 오래된 것 제거 후 새 조합 추가
+                    savedStates.shift();
+                }
+                savedStates.push(currentState); // 새로운 조합 추가
+                updateSavedCombinationsUI();
+            }
+
+            // 새로 저장된 조합의 인덱스를 계산하여 애니메이션 적용
+            const newCombIndex = savedStates.length >= 5 ? 5 : savedStates.length;
+            const newCombElement = document.getElementById(`comb${newCombIndex}`);
+            newCombElement.classList.add('newComb');
+            setTimeout(() => {
+                newCombElement.classList.remove('newComb');
+            }, 1000);
+
+            showSaveConfirmationPopup();
+        }
+    
+        function showSaveConfirmationPopup() {
+            const popup = document.getElementById('saveConfirmationPopup');
+            popup.style.display = 'block';
+        
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 800);
+        }
+
+        // 저장된 조합을 UI에 표시
+        function updateSavedCombinationsUI() {
+            for (let i = 0; i < 5; i++) {
+                const combElement = document.getElementById(`comb${i + 1}`);
+                if (i < savedStates.length) {
+                    // 저장된 조합의 개수에 따라 텍스트 업데이트
+                    combElement.textContent = `조합 ${i + 1}`;
+                    combElement.onclick = () => loadCombination(i);
+                } else {
+                    // 비어있는 조합 버튼 처리
+                    combElement.textContent = '';
+                    combElement.onclick = null;
+                }
+            }
+        }
+    
+        // 특정 조합 불러오기
+        function loadCombination(index) {
+            const state = savedStates[index];
+
+            Object.keys(state).forEach(animal => {
+                const isMuted = !state[animal];
+                document.getElementById(`${animal}Music`).muted = isMuted;
+                const standbyImage = document.getElementById(`${animal}standby`);
+                const play1Image = document.getElementById(`${animal}play1`);
+                const play2Image = document.getElementById(`${animal}play2`);
+        
+                if (!isMuted) {
+                    standbyImage.style.display = 'none';
+                    play1Image.style.display = 'block';
+                    play2Image.style.display = 'none';
+                    if (animal === 'vo') {
+                        switchToVoPlay1();
+                    }
+                } else {
+                    standbyImage.style.display = 'block';
+                    play1Image.style.display = 'none';
+                    play2Image.style.display = 'none';
+                    if (animal === 'vo') {
+                        switchToVoStandby();
+                    }
+                }
+            });
+        }
+        document.getElementById('saveButton').addEventListener('click', saveCurrentState);
+    
+        // 초기 상태 업데이트
+        updateSavedCombinationsUI();
+        updateSaveButtonState();
+        updateSaveButtonState();
+
     var vcStandby = document.getElementById('vcstandby');
     var vcPlay1 = document.getElementById('vcplay1');
     var vcPlay2 = document.getElementById('vcplay2');
@@ -73,20 +252,38 @@ document.addEventListener('DOMContentLoaded', function() {
     var isMoved = false;
     var voShadow = document.getElementById('voshadow');
 
+    vcMusic.volume = 0.6;
+    flMusic.volume = 0.8;
+    ukuMusic.volume = 0.5;
+    djbMusic.volume = 1;
+    drMusic.volume = 1;
+    vnMusic.volume = 0.6;
+    trbMusic.volume = 1;
+    gtrMusic.volume = 1;
+    pfMusic.volume = 1;
+    cbMusic.volume = 1;
+    trpMusic.volume = 0.9;
+    voMusic.volume = 0.8;
+
     var play1Duration = 6000;
     var play2Duration = 4000;
 
-    vcMusic.play();
-    flMusic.play();
-    ukuMusic.play();
-    djbMusic.play();
-    drMusic.play();
-    vnMusic.play();
-    trbMusic.play();
-    gtrMusic.play();
-    pfMusic.play();
-    cbMusic.play();
-    trpMusic.play();
+    var isMusicPlayed = false;
+
+    function playAllMusic() {
+        vcMusic.play();
+        flMusic.play();
+        ukuMusic.play();
+        djbMusic.play();
+        drMusic.play();
+        vnMusic.play();
+        trbMusic.play();
+        gtrMusic.play();
+        pfMusic.play();
+        cbMusic.play();
+        trpMusic.play();
+        isMusicPlayed = true;
+    }
 
     function switchToVcPlay1() {
         vcPlay1.style.display = 'block';
@@ -94,6 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vcStandby.style.display = 'none';
         vcMusic.muted = false;
         vcTimerId = setTimeout(switchToVcPlay2, play1Duration);
+        updateSaveButtonState();
     }
 
     function switchToVcPlay2() {
@@ -102,6 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vcStandby.style.display = 'none';
         vcMusic.muted = false;
         vcTimerId = setTimeout(switchToVcPlay1, play2Duration);
+        updateSaveButtonState();
     }
 
     function switchToVcStandby() {
@@ -111,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vcMusic.muted = true;
         vcMusic.currentTime = 0;
         clearTimeout(vcTimerId);
+        updateSaveButtonState();
     }
 
     vcStandby.addEventListener('click', switchToVcPlay1);
@@ -124,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
         flStandby.style.display = 'none';
         flMusic.muted = false;
         flTimerId = setTimeout(switchToFlPlay2, play1Duration);
+        updateSaveButtonState();
     }
 
     function switchToFlPlay2() {
@@ -132,6 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
         flStandby.style.display = 'none';
         flMusic.muted = false;
         flTimerId = setTimeout(switchToFlPlay1, play2Duration);
+        updateSaveButtonState();
     }
 
     function switchToFlStandby() {
@@ -141,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         flMusic.muted = true;
         flMusic.currentTime = 0;
         clearTimeout(flTimerId);
+        updateSaveButtonState();
     }
 
     flStandby.addEventListener('click', switchToFlPlay1);
@@ -154,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ukuStandby.style.display = 'none';
         ukuMusic.muted = false;
         ukuTimerId = setTimeout(switchToUkuPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToUkuPlay2() {
@@ -162,6 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ukuStandby.style.display = 'none';
         ukuMusic.muted = false;
         ukuTimerId = setTimeout(switchToUkuPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToUkuStandby() {
@@ -171,6 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ukuMusic.muted = true;
         ukuMusic.currentTime = 0;
         clearTimeout(ukuTimerId);
+        updateSaveButtonState();
     }
     
     ukuStandby.addEventListener('click', switchToUkuPlay1);
@@ -184,6 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
         djbStandby.style.display = 'none';
         djbMusic.muted = false;
         djbTimerId = setTimeout(switchToDjbPlay2, play1Duration);
+        updateSaveButtonState();
     }
 
     function switchToDjbPlay2() {
@@ -192,6 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
         djbStandby.style.display = 'none';
         djbMusic.muted = false;
         djbTimerId = setTimeout(switchToDjbPlay1, play2Duration);
+        updateSaveButtonState();
     }
 
     function switchToDjbStandby() {
@@ -201,6 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
         djbMusic.muted = true;
         djbMusic.currentTime = 0;
         clearTimeout(djbTimerId);
+        updateSaveButtonState();
     }
 
     djbStandby.addEventListener('click', switchToDjbPlay1);
@@ -214,6 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
         drStandby.style.display = 'none';
         drMusic.muted = false;
         drTimerId = setTimeout(switchToDrPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToDrPlay2() {
@@ -222,6 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
         drStandby.style.display = 'none';
         drMusic.muted = false;
         drTimerId = setTimeout(switchToDrPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToDrStandby() {
@@ -231,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
         drMusic.muted = true;
         drMusic.currentTime = 0;
         clearTimeout(drTimerId);
+        updateSaveButtonState();
     }
     
     drStandby.addEventListener('click', switchToDrPlay1);
@@ -244,6 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vnStandby.style.display = 'none';
         vnMusic.muted = false;
         vnTimerId = setTimeout(switchToVnPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToVnPlay2() {
@@ -252,6 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vnStandby.style.display = 'none';
         vnMusic.muted = false;
         vnTimerId = setTimeout(switchToVnPlay1, play2Duration);
+        updateSaveButtonState();
     }
 
     function switchToVnStandby() {
@@ -261,6 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vnMusic.muted = true;
         vnMusic.currentTime = 0;
         clearTimeout(vnTimerId);
+        updateSaveButtonState();
         }
         
     vnStandby.addEventListener('click', switchToVnPlay1);
@@ -274,6 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
         trbStandby.style.display = 'none';
         trbMusic.muted = false;
         trbTimerId = setTimeout(switchToTrbPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToTrbPlay2() {
@@ -282,6 +498,7 @@ document.addEventListener('DOMContentLoaded', function() {
         trbStandby.style.display = 'none';
         trbMusic.muted = false;
         trbTimerId = setTimeout(switchToTrbPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToTrbStandby() {
@@ -291,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
         trbMusic.muted = true;
         trbMusic.currentTime = 0;
         clearTimeout(trbTimerId);
+        updateSaveButtonState();
     }
     
     trbStandby.addEventListener('click', switchToTrbPlay1);
@@ -304,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gtrStandby.style.display = 'none';
         gtrMusic.muted = false;
         gtrTimerId = setTimeout(switchToGtrPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToGtrPlay2() {
@@ -312,6 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gtrStandby.style.display = 'none';
         gtrMusic.muted = false;
         gtrTimerId = setTimeout(switchToGtrPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToGtrStandby() {
@@ -321,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gtrMusic.pause();
         gtrMusic.muted = true;
         clearTimeout(gtrTimerId);
+        updateSaveButtonState();
     }
     
     gtrStandby.addEventListener('click', switchToGtrPlay1);
@@ -334,6 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pfStandby.style.display = 'none';
         pfMusic.muted = false;
         pfTimerId = setTimeout(switchToPfPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToPfPlay2() {
@@ -342,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pfStandby.style.display = 'none';
         pfMusic.muted = false;
         pfTimerId = setTimeout(switchToPfPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToPfStandby() {
@@ -351,6 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pfMusic.muted = true;
         pfMusic.currentTime = 0;
         clearTimeout(pfTimerId);
+        updateSaveButtonState();
     }
     
     pfStandby.addEventListener('click', switchToPfPlay1);
@@ -364,6 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cbStandby.style.display = 'none';
         cbMusic.muted = false;
         cbTimerId = setTimeout(switchToCbPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToCbPlay2() {
@@ -372,6 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cbStandby.style.display = 'none';
         cbMusic.muted = false;
         cbTimerId = setTimeout(switchToCbPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToCbStandby() {
@@ -381,6 +607,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cbMusic.muted = true;
         cbMusic.currentTime = 0;
         clearTimeout(cbTimerId);
+        updateSaveButtonState();
     }
     
     cbStandby.addEventListener('click', switchToCbPlay1);
@@ -394,6 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
         trpStandby.style.display = 'none';
         trpMusic.muted = false;
         trpTimerId = setTimeout(switchToTrpPlay2, play1Duration);
+        updateSaveButtonState();
     }
     
     function switchToTrpPlay2() {
@@ -402,14 +630,17 @@ document.addEventListener('DOMContentLoaded', function() {
         trpStandby.style.display = 'none';
         trpMusic.muted = false;
         trpTimerId = setTimeout(switchToTrpPlay1, play2Duration);
+        updateSaveButtonState();
     }
     
     function switchToTrpStandby() {
         trpPlay1.style.display = 'none';
         trpPlay2.style.display = 'none';
         trpStandby.style.display = 'block';
+        trpMusic.muted = true;
         trpMusic.currentTime = 0;
         clearTimeout(trpTimerId);
+        updateSaveButtonState();
     }
     
     trpStandby.addEventListener('click', switchToTrpPlay1);
@@ -421,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
         voPlay1.style.display = 'block';
         voPlay2.style.display = 'none';
         voStandby.style.display = 'none';
-        voMusic.play();
+        voMusic.muted = false;
         voTimerId = setTimeout(switchToVoPlay2, play1Duration);
         voShadow.style.display = 'block';
     }
@@ -430,7 +661,7 @@ document.addEventListener('DOMContentLoaded', function() {
         voPlay2.style.display = 'block';
         voPlay1.style.display = 'none';
         voStandby.style.display = 'none';
-        voMusic.play();
+        voMusic.muted = false;
         voTimerId = setTimeout(switchToVoPlay1, play2Duration);
     }
     
@@ -438,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function() {
         voPlay1.style.display = 'none';
         voPlay2.style.display = 'none';
         voStandby.style.display = 'block';
-        voMusic.pause();
+        voMusic.muted = true;
         voMusic.currentTime = 0;
         clearTimeout(voTimerId);
         setTimeout(function () {
@@ -507,19 +738,18 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     // 오버레이 클릭 시 팝업 닫기
     popupBack.onclick = function() {
+        playAllMusic();
         popup.style.display = "none";
         popupBack.style.display = "none";
     };
 
         nextButton.onclick = function(event) {
             event.stopPropagation(); // 이벤트 버블링 중단
-            // 다음 페이지로 넘어가는 효과 추가
             popupContent.classList.add('next-page');
         };
         
         prevButton.onclick = function(event) {
             event.stopPropagation(); // 이벤트 버블링 중단
-            // 이전 페이지로 돌아가는 효과 추가
             popupContent.classList.add('prev-page');
         };
         function updatePages() {
